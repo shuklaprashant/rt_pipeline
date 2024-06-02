@@ -52,6 +52,8 @@ with gzip.open(CSV_FILE_LOCATION, mode="rt", encoding="utf-8-sig") as gzip_file:
 
         avro_producer.produce(topic=topic, value=avro_record, callback=acked)
 
+        time.sleep(PRODUCER_MAX_SLEEP_TIME_SECONDS)
+
         avro_producer.poll(1)
 
 avro_producer.flush()
