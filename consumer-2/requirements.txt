@@ -1,0 +1,6 @@
+avro
+confluent-kafka
+pymongo
+urllib3
+requests
+fastavro

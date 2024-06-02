@@ -1,0 +1,4 @@
+avro
+confluent-kafka
+urllib3
+requests

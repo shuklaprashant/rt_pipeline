@@ -1,0 +1,38 @@
+{
+  "type": "record",
+  "name": "Incident",
+  "fields": [
+    {
+      "name": "IncidentNumber",
+      "type": "string"
+    },
+    {
+      "name": "DateOfCall",
+      "type": "string"
+    },
+    {
+      "name": "CalYear",
+      "type": "string"
+    },
+    {
+      "name": "TimeOfCall",
+      "type": "string"
+    },
+    {
+      "name": "HourOfCall",
+      "type": "string"
+    },
+    {
+      "name": "IncidentGroup",
+      "type": "string"
+    },
+    {
+      "name": "IncidentStationGround",
+      "type": "string"
+    },
+    {
+      "name": "FirstPumpArriving_AttendanceTime",
+      "type": "string"
+    }
+  ]
+}
