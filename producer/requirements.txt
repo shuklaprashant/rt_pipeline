@@ -2,3 +2,6 @@ avro
 confluent-kafka
 urllib3
 requests
+websockets
+fastavro
+websocket-client

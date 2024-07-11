@@ -40,7 +40,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
 
   ksqldb-server:
-    image: confluentinc/ksqldb-server:latest
+    image: confluentinc/cp-ksqldb-server:7.6.1
     hostname: ksqldb-server
     container_name: ksqldb-server
     depends_on:
@@ -70,9 +70,15 @@ services:
     build: producer
     container_name: producer
     depends_on:
-      - kafka-broker-1
-      - ksqldb-server
-      - schema-registry
+      kafka-broker-1:
+        condition: service_started
+      ksqldb-server:
+        condition: service_started
+      schema-registry:
+        condition: service_started
+      lfb-rt-simulator:
+          condition: service_healthy
+
     environment:
       KAFKA_BOOTSTRAP_SERVER: kafka-broker-1:9092
       KAFKA_SCHEMA_REGISTRY_URL: http://schema-registry:8081
@@ -116,4 +122,19 @@ services:
       KAFKA_BOOTSTRAP_SERVER: kafka-broker-1:9092
       KAFKA_SCHEMA_REGISTRY_URL: http://schema-registry:8081
       MONGODB_URI: mongodb://mongodb:27017
+
+  lfb-rt-simulator:
+    build: lfb-rt-simulator
+    environment:
+      CSV_FILE_LOCATION: data/LFB_Incident_data_from_January_2017.csv.gz
+      PRODUCER_MAX_SLEEP_TIME_SECONDS: 2
+    expose:
+        - "5678"
+        - "5679"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 src/healthcheck.py"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+    entrypoint: ["python3", "src/lfb_ws_server.py"]
       
