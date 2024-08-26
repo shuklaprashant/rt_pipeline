@@ -1,4 +1,3 @@
-db = db.getSiblingDB('incidents');
+db = db.getSiblingDB('page_views');
 
-db.createCollection('LFB_STATION_TOTAL_EVENTS');
-db.createCollection('LFB_METRICS');
+db.createCollection('PAGE_VIEWS_COUNT');

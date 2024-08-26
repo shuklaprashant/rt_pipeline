@@ -41,7 +41,7 @@ def delivery_report(err, msg):
 
 
 def main():
-    topic = 'page_views'
+    topic = 'incident'
 
     schema_path = os.environ.get("SCHEMA_FILE_LOCATION", None)
     with open(schema_path, "r") as f:
@@ -67,7 +67,7 @@ def main():
     while payload:
         payload_utf8 = payload.decode()
         record_json = json.loads(payload_utf8)
-        print("Inserting IncidentNumber={user_id}".format(user_id=record_json["user_id"]))
+        print("Inserting IncidentNumber={IncidentNumber}".format(IncidentNumber=record_json["IncidentNumber"]))
         producer.produce(topic=topic,
                              key=string_serializer(str(uuid4())),
                              value=avro_serializer(payload_utf8, SerializationContext(topic, MessageField.VALUE)),

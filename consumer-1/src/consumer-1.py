@@ -46,6 +46,7 @@ class KafkaMongoConsumer:
 
     def update_mongodb_collection(self, topic, msg):
         if topic not in self.collections:
+            print(self.collections)
             print(f"No collection mapped for topic: {topic}")
             return
 
@@ -72,25 +73,21 @@ if __name__ == '__main__':
     group_id = 'group-1'
     schema_registry_url = os.environ.get('KAFKA_SCHEMA_REGISTRY_URL', 'http://schema-registry:8081')
     mongodb_uri = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017')
-    db_name = 'incidents'
+    db_name = 'page_views'
     topics = [
-        # 'LFB_STATIONS_EVENTS', 
-              'LFB_METRICS'
+              'PAGE_VIWES_COUNT'
               ]
     
     topic_to_collection = {
-        # 'LFB_STATIONS_EVENTS': 'LFB_STATION_TOTAL_EVENTS',
-        'LFB_METRICS': 'LFB_METRICS'
+        'PAGE_VIEWS_COUNT': 'PAGE_VIEWS_COUNT'
     }
 
     key_fields = {
-        # 'LFB_STATIONS_EVENTS': ['INCIDENTSTATIONGROUND', 'INCIDENTGROUP'],
-        'LFB_METRICS': ['INCIDENTSTATIONGROUND', 'INCIDENTGROUP', 'DATEOFCALL']
+        'PAGE_VIEWS_COUNT': ['POSTCODE', 'WINDOWSTART', 'WINDOWEND']
     }
 
     value_fields = {
-        # 'LFB_STATIONS_EVENTS': ['TOTALEVENTS'],
-        'LFB_METRICS': ['TOTALEVENTS', 'TOTAL_ATTENDANCETIME']
+        'PAGE_VIEWS_COUNT': ['TOTAL_VIEWS']
     }
 
     kafka_mongo_consumer = KafkaMongoConsumer(kafka_brokers, group_id, schema_registry_url, mongodb_uri, db_name, topics, topic_to_collection, key_fields, value_fields)

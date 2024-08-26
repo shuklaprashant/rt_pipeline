@@ -21,6 +21,7 @@ import json
 import os
 import random
 import websockets
+import generate_page_view
 
 CSV_FILE_LOCATION = os.environ.get("CSV_FILE_LOCATION", None)
 PRODUCER_MAX_SLEEP_TIME_SECONDS = int(os.environ.get("PRODUCER_MAX_SLEEP_TIME_SECONDS", None))
@@ -33,8 +34,9 @@ def print_log(websocket, data):
     print(f"[{srv_host}:{srv_port} -> {destination_host}:{destination_port}] {data}")
 
 async def rt_simulator(websocket, _):
-    gzip_file = gzip.open(CSV_FILE_LOCATION, mode="rt", encoding="utf-8-sig")
-    dict_stream = csv.DictReader(gzip_file, delimiter=",")
+    # gzip_file = gzip.open(CSV_FILE_LOCATION, mode="rt", encoding="utf-8-sig")
+    # dict_stream = csv.DictReader(gzip_file, delimiter=",")
+    dict_stream = generate_page_view.generate_pv(5000)
     for row in dict_stream:
         data = json.dumps(row, ensure_ascii=False).encode("utf8")
         await websocket.send(data)

@@ -83,8 +83,8 @@ services:
       KAFKA_BOOTSTRAP_SERVER: kafka-broker-1:9092
       KAFKA_SCHEMA_REGISTRY_URL: http://schema-registry:8081
       CSV_FILE_LOCATION: /app/data/LFB_Incident_data_from_January_2017.csv.gz
-      SCHEMA_FILE_LOCATION: /app/schema/incident_schema.avsc
-      PRODUCER_MAX_SLEEP_TIME_SECONDS: 5
+      SCHEMA_FILE_LOCATION: /app/schema/pageviews.avsc
+      PRODUCER_MAX_SLEEP_TIME_SECONDS: 2
 
   mongodb:
     build: mongo-db
@@ -97,6 +97,19 @@ services:
     ports:
       - "27017:27017"
 
+  # consumer-1:
+  #   build: consumer-1
+  #   container_name: consumer-1
+  #   depends_on:
+  #     - kafka-broker-1
+  #     - ksqldb-server
+  #     - schema-registry
+  #     - mongodb
+  #   environment:
+  #     KAFKA_BOOTSTRAP_SERVER: kafka-broker-1:9092
+  #     KAFKA_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+  #     MONGODB_URI: mongodb://mongodb:27017
+
   consumer-1:
     build: consumer-1
     container_name: consumer-1
@@ -104,24 +117,34 @@ services:
       - kafka-broker-1
       - ksqldb-server
       - schema-registry
-      - mongodb
+      - connect
     environment:
       KAFKA_BOOTSTRAP_SERVER: kafka-broker-1:9092
       KAFKA_SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      MONGODB_URI: mongodb://mongodb:27017
 
-  consumer-2:
-    build: consumer-2
-    container_name: consumer-2
+  connect:
+    image: confluentinc/cp-kafka-connect:7.0.1
     depends_on:
-      - kafka-broker-1
-      - ksqldb-server
-      - schema-registry
-      - mongodb
+      - kafka
+    ports:
+      - "8083:8083"
     environment:
-      KAFKA_BOOTSTRAP_SERVER: kafka-broker-1:9092
-      KAFKA_SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      MONGODB_URI: mongodb://mongodb:27017
+      CONNECT_BOOTSTRAP_SERVERS: kafka-broker-1:9092
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: "connect-cluster"
+      CONNECT_CONFIG_STORAGE_TOPIC: "connect-configs"
+      CONNECT_OFFSET_STORAGE_TOPIC: "connect-offsets"
+      CONNECT_STATUS_STORAGE_TOPIC: "connect-status"
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_LOG4J_ROOT_LOGLEVEL: "INFO"
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/etc/kafka-connect/jars"
+      AWS_ACCESS_KEY_ID: "<>"
+      AWS_SECRET_ACCESS_KEY: "<>"
+    volumes:
+      - ./plugins:/etc/kafka-connect/jars
 
   lfb-rt-simulator:
     build: lfb-rt-simulator

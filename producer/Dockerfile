@@ -18,7 +18,7 @@ COPY src/producer.py /app/src/producer.py
 ENV KAFKA_BOOTSTRAP_SERVER=kafka-broker-1:9092
 ENV KAFKA_SCHEMA_REGISTRY_URL=http://schema-registry:8081
 ENV CSV_FILE_LOCATION=/app/data/LFB_Incident_data_from_January_2017.csv.gz
-ENV SCHEMA_FILE_LOCATION=/app/schema/incident_schema.avsc
+ENV SCHEMA_FILE_LOCATION=/app/schema/pageviews.avsc
 ENV PRODUCER_MAX_SLEEP_TIME_SECONDS = 5
 
 # Install required Python packages (assuming you have a requirements.txt)
