@@ -40,19 +40,28 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
 
   ksqldb-server:
-    image: confluentinc/cp-ksqldb-server:7.6.1
+    build: ksqldb-server
     hostname: ksqldb-server
     container_name: ksqldb-server
     depends_on:
       - kafka-broker-1
     ports:
       - "8088:8088"
+      - "1099:1099"
+      - "7072:7072"
     environment:
       KSQL_LISTENERS: http://0.0.0.0:8088
       KSQL_BOOTSTRAP_SERVERS: kafka-broker-1:9092
       KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
       KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
       KSQL_KSQL_SCHEMA_REGISTRY_URL:  "http://schema-registry:8081"
+      KSQL_JMX_OPTS: >
+        -Djava.rmi.server.hostname=localhost
+        -Dcom.sun.management.jmxremote
+        -Dcom.sun.management.jmxremote.port=1099
+        -Dcom.sun.management.jmxremote.authenticate=false
+        -Dcom.sun.management.jmxremote.ssl=false
+        -Dcom.sun.management.jmxremote.rmi.port=1099
 
   ksqldb-cli:
     build: ksqldb-cli
@@ -62,7 +71,7 @@ services:
       - ksqldb-server
     environment:
       KAFKA_BOOTSTRAP_SERVER: kafka-broker-1:9092
-      TOPIC_NAME: "incident"
+      TOPIC_NAME: "page_views"
     entrypoint: ["/scripts/wait-for-ksql-server.sh"]
     tty: true
   
@@ -76,39 +85,14 @@ services:
         condition: service_started
       schema-registry:
         condition: service_started
-      lfb-rt-simulator:
+      rt-simulator:
           condition: service_healthy
 
     environment:
       KAFKA_BOOTSTRAP_SERVER: kafka-broker-1:9092
       KAFKA_SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      CSV_FILE_LOCATION: /app/data/LFB_Incident_data_from_January_2017.csv.gz
       SCHEMA_FILE_LOCATION: /app/schema/pageviews.avsc
-      PRODUCER_MAX_SLEEP_TIME_SECONDS: 2
-
-  mongodb:
-    build: mongo-db
-    container_name: mongo
-    depends_on:
-      - kafka-broker-1
-      - ksqldb-server
-      - schema-registry
-      - producer
-    ports:
-      - "27017:27017"
-
-  # consumer-1:
-  #   build: consumer-1
-  #   container_name: consumer-1
-  #   depends_on:
-  #     - kafka-broker-1
-  #     - ksqldb-server
-  #     - schema-registry
-  #     - mongodb
-  #   environment:
-  #     KAFKA_BOOTSTRAP_SERVER: kafka-broker-1:9092
-  #     KAFKA_SCHEMA_REGISTRY_URL: http://schema-registry:8081
-  #     MONGODB_URI: mongodb://mongodb:27017
+      PRODUCER_MAX_SLEEP_TIME_SECONDS: 5
 
   consumer-1:
     build: consumer-1
@@ -117,40 +101,36 @@ services:
       - kafka-broker-1
       - ksqldb-server
       - schema-registry
-      - connect
     environment:
       KAFKA_BOOTSTRAP_SERVER: kafka-broker-1:9092
       KAFKA_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      KAFKA_TOPIC: "PAGE_VIEWS_COUNT"
+      AWS_REGION: "eu-west-2"
+      AWS_ACCESS_KEY: ""
+      AWS_SECRET_KEY: ""
+      S3_BUCKET_NAME: "agg_event_page_views"
 
-  connect:
-    image: confluentinc/cp-kafka-connect:7.0.1
+  consumer-2:
+    build: consumer-2
+    container_name: consumer-2
     depends_on:
-      - kafka
-    ports:
-      - "8083:8083"
+      - kafka-broker-1
+      - ksqldb-server
+      - schema-registry
     environment:
-      CONNECT_BOOTSTRAP_SERVERS: kafka-broker-1:9092
-      CONNECT_REST_PORT: 8083
-      CONNECT_GROUP_ID: "connect-cluster"
-      CONNECT_CONFIG_STORAGE_TOPIC: "connect-configs"
-      CONNECT_OFFSET_STORAGE_TOPIC: "connect-offsets"
-      CONNECT_STATUS_STORAGE_TOPIC: "connect-status"
-      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
-      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
-      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
-      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
-      CONNECT_LOG4J_ROOT_LOGLEVEL: "INFO"
-      CONNECT_PLUGIN_PATH: "/usr/share/java,/etc/kafka-connect/jars"
-      AWS_ACCESS_KEY_ID: "<>"
-      AWS_SECRET_ACCESS_KEY: "<>"
-    volumes:
-      - ./plugins:/etc/kafka-connect/jars
+      KAFKA_BOOTSTRAP_SERVER: kafka-broker-1:9092
+      KAFKA_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      KAFKA_TOPIC: "page_views"
+      AWS_REGION: "eu-west-2"
+      AWS_ACCESS_KEY: ""
+      AWS_SECRET_KEY: ""
+      S3_BUCKET_NAME: "raw_page_view_event"
 
-  lfb-rt-simulator:
-    build: lfb-rt-simulator
+  rt-simulator:
+    build: rt-simulator
     environment:
-      CSV_FILE_LOCATION: data/LFB_Incident_data_from_January_2017.csv.gz
-      PRODUCER_MAX_SLEEP_TIME_SECONDS: 2
+      PRODUCER_MAX_SLEEP_TIME_SECONDS: 5
+      TOTAL_EVENTS_TO_GENERATE: 10000
     expose:
         - "5678"
         - "5679"
@@ -159,5 +139,28 @@ services:
       interval: 5s
       timeout: 10s
       retries: 5
-    entrypoint: ["python3", "src/lfb_ws_server.py"]
-      
+    entrypoint: ["python3", "src/event_ws_server.py"]
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin # Change this in production
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+  node_exporter:
+    image: prom/node-exporter:latest
+    ports:
+      - "9100:9100"
+
+volumes:
+  grafana-data:

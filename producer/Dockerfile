@@ -10,16 +10,14 @@ RUN wget https://github.com/edenhill/librdkafka/archive/v2.5.0.tar.gz
 RUN tar -xvf v2.5.0.tar.gz && cd librdkafka-2.5.0 && ./configure --prefix /usr && make && make install
 
 # Copy the necessary files from the local machine
-COPY data /app/data
 COPY schema /app/schema
 COPY src/producer.py /app/src/producer.py
 
 # Set environment variables for the Python script
 ENV KAFKA_BOOTSTRAP_SERVER=kafka-broker-1:9092
 ENV KAFKA_SCHEMA_REGISTRY_URL=http://schema-registry:8081
-ENV CSV_FILE_LOCATION=/app/data/LFB_Incident_data_from_January_2017.csv.gz
 ENV SCHEMA_FILE_LOCATION=/app/schema/pageviews.avsc
-ENV PRODUCER_MAX_SLEEP_TIME_SECONDS = 5
+ENV PRODUCER_MAX_SLEEP_TIME_SECONDS = 2
 
 # Install required Python packages (assuming you have a requirements.txt)
 # If you don't, you can directly install packages using RUN pip install <package_name>

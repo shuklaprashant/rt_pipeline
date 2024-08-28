@@ -1,0 +1,22 @@
+{
+  "type": "record",
+  "name": "PageViews",
+  "fields": [
+    {
+      "name": "user_id",
+      "type": "int"
+    },
+    {
+      "name": "postcode",
+      "type": "string"
+    },
+    {
+      "name": "webpage",
+      "type": "string"
+    },
+    {
+      "name": "at_time",
+      "type": "long"
+    }
+  ]
+}

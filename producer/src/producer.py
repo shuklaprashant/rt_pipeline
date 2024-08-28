@@ -1,6 +1,7 @@
 import os
 from uuid import uuid4
 import json
+import logging
 
 from confluent_kafka import Producer
 from confluent_kafka.serialization import StringSerializer, SerializationContext, MessageField
@@ -9,7 +10,9 @@ from confluent_kafka.schema_registry.avro import AvroSerializer
 
 from websocket import create_connection
 
-PRODUCER_MAX_SLEEP_TIME_SECONDS = int(os.environ.get("PRODUCER_MAX_SLEEP_TIME_SECONDS", None))
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def record_to_dict(record, ctx):
     return json.loads(record)
@@ -20,30 +23,27 @@ def delivery_report(err, msg):
     Reports the failure or success of a message delivery.
 
     Args:
-        err (KafkaError): The error that occurred on None on success.
+        err (KafkaError): The error that occurred or None on success.
 
         msg (Message): The message that was produced or failed.
-
-    Note:
-        In the delivery report callback the Message.key() and Message.value()
-        will be the binary format as encoded by any configured Serializers and
-        not the same object that was passed to produce().
-        If you wish to pass the original object(s) for key and value to delivery
-        report callback we recommend a bound callback or lambda where you pass
-        the objects along.
     """
-
     if err is not None:
-        print("Delivery failed for User record {}: {}".format(msg.key(), err))
+        logger.error("Delivery failed for User record {}: {}".format(msg.key(), err))
         return
-    print('User record {} successfully produced to {} [{}] at offset {}'.format(
+    logger.info('User record {} successfully produced to {} [{}] at offset {}'.format(
         msg.key(), msg.topic(), msg.partition(), msg.offset()))
 
 
 def main():
     topic = 'page_views'
 
+    # Load schema
     schema_path = os.environ.get("SCHEMA_FILE_LOCATION", None)
+    if not schema_path or not os.path.exists(schema_path):
+        logger.error("Schema file not found at {}".format(schema_path))
+        return
+
+    logger.info("Loading schema from {}".format(schema_path))
     with open(schema_path, "r") as f:
         schema_str = f.read()
     
@@ -58,27 +58,48 @@ def main():
 
     producer_conf = {'bootstrap.servers': os.environ.get("KAFKA_BOOTSTRAP_SERVER", 'localhost:9092')}
 
+    logger.info("Initializing Kafka producer with configuration: {}".format(producer_conf))
     producer = Producer(producer_conf)
 
-    print("Producing user records to topic {}. ^C to exit.".format(topic))
+    logger.info("Producing user records to topic {}. Press ^C to exit.".format(topic))
 
-    ws_connection = create_connection('ws://lfb-rt-simulator:5678')
-    payload = ws_connection.recv()
-    while payload:
-        payload_utf8 = payload.decode()
-        record_json = json.loads(payload_utf8)
-        print("Inserting IncidentNumber={user_id}".format(user_id=record_json["user_id"]))
-        producer.produce(topic=topic,
+    # Connect to WebSocket server
+    try:
+        logger.info("Connecting to WebSocket server at ws://rt-simulator:5678")
+        ws_connection = create_connection('ws://rt-simulator:5678')
+    except Exception as e:
+        logger.error("Failed to connect to WebSocket server: {}".format(e))
+        return
+
+    try:
+        payload = ws_connection.recv()
+        while payload:
+            payload_utf8 = payload.decode()
+            record_json = json.loads(payload_utf8)
+            logger.info("Inserting Event for user_id: {}".format(record_json.get("user_id", "Unknown")))
+
+            producer.produce(topic=topic,
                              key=string_serializer(str(uuid4())),
                              value=avro_serializer(payload_utf8, SerializationContext(topic, MessageField.VALUE)),
                              on_delivery=delivery_report)
-        producer.poll(1)
-        # time.sleep(5)
-        payload =  ws_connection.recv()
+            producer.poll(1)
+            payload = ws_connection.recv()
 
-    print("\nFlushing records...")
-    producer.flush()
+    except Exception as e:
+        logger.error("Error during message production: {}".format(e))
+
+    finally:
+        logger.info("Flushing records...")
+        producer.flush()
+
+        logger.info("Closing WebSocket connection.")
+        ws_connection.close()
+
 
 if __name__ == '__main__':
-
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        logger.info("Program interrupted. Exiting.")
+    except Exception as e:
+        logger.error("An error occurred: {}".format(e))
