@@ -53,4 +53,4 @@
     - Go to `Dashboard` > `New` > `Import`.
     - Select `node_exporter_full.json` to import a sample Grafana dashboard.
 4. **Monitor Metrics**:
-    - Verify metrics like CPU, Memory, and Storage Utilization.
+    - Verify metrics like CPU, Memory, and Storage Utilization for ksqldb-server.
