@@ -47,7 +47,7 @@
 1. **Access Grafana**:
     - Open Grafana in your browser at: [http://localhost:3000](http://localhost:3000)
 2. **Add a Data Source**:
-    - Go to `Configuration` > `Data Sources`.
+    - Go to `Connections` > `Data Sources`.
     - Add **Prometheus** as the data source.
 3. **Import a Sample Dashboard**:
     - Go to `Dashboard` > `New` > `Import`.
