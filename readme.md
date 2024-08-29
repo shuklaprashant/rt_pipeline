@@ -31,6 +31,7 @@
     docker compose logs consumer-1
     docker compose logs consumer-2
     ```
+    **NOTE: Health checks are minimal, there might be initial delay of 1-2 minute to see the consumers writing documents to S3.
 
 ### How to Query the Results
 1. **Check S3 Buckets**:
