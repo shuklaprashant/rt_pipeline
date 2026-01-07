@@ -5,3 +5,7 @@ requests
 websockets
 fastavro
 websocket-client
+httpx
+authlib
+cachetools
+attrs

@@ -3,11 +3,20 @@ FROM python:3.9-alpine
 # Set working directory
 WORKDIR /app
 
-RUN apk add --no-cache gcc musl-dev librdkafka-dev netcat-openbsd
+# Install build dependencies required for compiling librdkafka and Python packages
+RUN apk add --no-cache --virtual .build-deps gcc g++ musl-dev bash make wget git && \
+    apk add --no-cache musl-dev zlib-dev openssl zstd-dev pkgconfig libc-dev python3-dev && \
+    wget -O librdkafka-2.13.0.tar.gz https://github.com/confluentinc/librdkafka/archive/refs/tags/v2.13.0.tar.gz && \
+    tar -xzf librdkafka-2.13.0.tar.gz && cd librdkafka-2.13.0 && ./configure --prefix /usr && make && make install && \
+    cd /app && rm -rf librdkafka-2.13.0 librdkafka-2.13.0.tar.gz && \
+    apk add --no-cache netcat-openbsd && \
+    apk del .build-deps
 
-RUN apk add --no-cache --virtual .make-deps bash make wget git gcc g++ && apk add --no-cache musl-dev zlib-dev openssl zstd-dev pkgconfig libc-dev
-RUN wget https://github.com/edenhill/librdkafka/archive/v2.5.3.tar.gz
-RUN tar -xvf v2.5.3.tar.gz && cd librdkafka-2.5.3 && ./configure --prefix /usr && make && make install
+# Install Python dependencies after librdkafka is available
+COPY requirements.txt /app/requirements.txt
+RUN apk add --no-cache --virtual .build-deps gcc g++ musl-dev python3-dev && \
+    pip install --no-cache-dir -r /app/requirements.txt && \
+    apk del .build-deps
 
 # Copy the necessary files from the local machine
 COPY schema /app/schema
@@ -17,12 +26,7 @@ COPY src/producer.py /app/src/producer.py
 ENV KAFKA_BOOTSTRAP_SERVER=kafka-broker-1:9092
 ENV KAFKA_SCHEMA_REGISTRY_URL=http://schema-registry:8081
 ENV SCHEMA_FILE_LOCATION=/app/schema/pageviews.avsc
-ENV PRODUCER_MAX_SLEEP_TIME_SECONDS = 2
-
-# Install required Python packages (assuming you have a requirements.txt)
-# If you don't, you can directly install packages using RUN pip install <package_name>
-COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+ENV PRODUCER_MAX_SLEEP_TIME_SECONDS=2
 
 # Wait for Kafka to start and then run the Python script
 CMD ["sh", "-c", "while ! nc -z kafka-broker-1 9092 || ! nc -z schema-registry 8081; do sleep 1; done; python src/producer.py"]

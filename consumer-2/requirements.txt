@@ -6,3 +6,7 @@ requests
 fastavro
 boto3
 kafka-python
+httpx
+authlib
+cachetools
+attrs
