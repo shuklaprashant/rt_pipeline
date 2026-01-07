@@ -10,26 +10,29 @@ services:
       - "2181:2181"
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:latest
+    image: confluentinc/cp-schema-registry:7.9.5
     hostname: schema-registry
     depends_on:
       - kafka-broker-1
+      - zookeeper
     ports:
       - "8081:8081"
+    restart: unless-stopped
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
       SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka-broker-1:9092,PLAINTEXT_INTERNAL://localhost:19092
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka-broker-1:9092
       SCHEMA_REGISTRY_DEBUG: 'true'
 
   kafka-broker-1:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.9.5
     hostname: kafka-broker-1
     ports:
       - "19092:19092"
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_started
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
@@ -101,6 +104,8 @@ services:
       - kafka-broker-1
       - ksqldb-server
       - schema-registry
+    env_file:
+      - .env
     environment:
       KAFKA_BOOTSTRAP_SERVER: kafka-broker-1:9092
       KAFKA_SCHEMA_REGISTRY_URL: http://schema-registry:8081
@@ -117,6 +122,8 @@ services:
       - kafka-broker-1
       - ksqldb-server
       - schema-registry
+    env_file:
+      - .env
     environment:
       KAFKA_BOOTSTRAP_SERVER: kafka-broker-1:9092
       KAFKA_SCHEMA_REGISTRY_URL: http://schema-registry:8081
