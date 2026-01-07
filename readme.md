@@ -9,6 +9,7 @@
 1. **Clone the Repository**:
     ```bash
     git clone https://github.com/shuklaprashant/rt_pipeline.git
+    git clone https://github.com/shuklaprashant/rt_pipeline.git
     ```
 2. **Navigate to the Project Directory**:
     ```bash
@@ -32,6 +33,7 @@
     docker compose logs consumer-2
     ```
     **NOTE: Health checks are minimal, there might be initial delay of 1-2 minute to see the consumers writing documents to S3.
+    **NOTE: Health checks are minimal, there might be initial delay of 1-2 minute to see the consumers writing documents to S3.
 
 ### How to Query the Results
 1. **Check S3 Buckets**:
@@ -54,4 +56,4 @@
     - Go to `Dashboard` > `New` > `Import`.
     - Select `node_exporter_full.json` to import a sample Grafana dashboard.
 4. **Monitor Metrics**:
-    - Verify metrics like CPU, Memory, and Storage Utilization for ksqldb-server.
+    - Verify metrics like CPU, Memory, and Storage Utilization for ksqldb-server for ksqldb-server.

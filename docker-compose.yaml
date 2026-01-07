@@ -110,6 +110,9 @@ services:
       KAFKA_BOOTSTRAP_SERVER: kafka-broker-1:9092
       KAFKA_SCHEMA_REGISTRY_URL: http://schema-registry:8081
       KAFKA_TOPIC: "PAGE_VIEWS_COUNT"
+      AWS_REGION: "eu-west-2"
+      AWS_ACCESS_KEY: 
+      AWS_SECRET_KEY: 
       S3_BUCKET_NAME: "agg-event-page-views"
 
   consumer-2:
@@ -125,6 +128,9 @@ services:
       KAFKA_BOOTSTRAP_SERVER: kafka-broker-1:9092
       KAFKA_SCHEMA_REGISTRY_URL: http://schema-registry:8081
       KAFKA_TOPIC: "page_views"
+      AWS_REGION: "eu-west-2"
+      AWS_ACCESS_KEY: 
+      AWS_SECRET_KEY: 
       S3_BUCKET_NAME: "raw-page-view-event"
 
   rt-simulator:
