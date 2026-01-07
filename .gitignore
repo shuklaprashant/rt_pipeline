@@ -45,3 +45,6 @@ wheels/
 
 # Node (if needed)
 node_modules/
+
+# Demo
+*.mov
