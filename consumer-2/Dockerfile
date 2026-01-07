@@ -4,9 +4,13 @@ WORKDIR /app
 
 RUN apk add --no-cache gcc musl-dev librdkafka-dev netcat-openbsd
 
-RUN apk add --no-cache --virtual .make-deps bash make wget git gcc g++ && apk add --no-cache musl-dev zlib-dev openssl zstd-dev pkgconfig libc-dev
-RUN wget https://github.com/edenhill/librdkafka/archive/v2.5.3.tar.gz
-RUN tar -xvf v2.5.3.tar.gz && cd librdkafka-2.5.3 && ./configure --prefix /usr && make && make install
+RUN apk add --no-cache --virtual .build-deps gcc g++ musl-dev bash make wget git && \
+    apk add --no-cache musl-dev zlib-dev openssl zstd-dev pkgconfig libc-dev python3-dev && \
+    wget -O librdkafka-2.13.0.tar.gz https://github.com/confluentinc/librdkafka/archive/refs/tags/v2.13.0.tar.gz && \
+    tar -xzf librdkafka-2.13.0.tar.gz && cd librdkafka-2.13.0 && ./configure --prefix /usr && make && make install && \
+    cd /app && rm -rf librdkafka-2.13.0 librdkafka-2.13.0.tar.gz && \
+    apk add --no-cache netcat-openbsd && \
+    apk del .build-deps
 
 COPY src/consumer-2.py /app/src/consumer-2.py
 
